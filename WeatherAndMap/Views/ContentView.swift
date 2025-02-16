@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+
 struct ContentView: View {
     //APIへリクエスト、レスポンスの値を保持するオブジェクト
     @StateObject private var weatherVM = WeatherViewModel()
