@@ -9,6 +9,8 @@ import SwiftUI
 
 struct DailyWeatherView: View {
     @ObservedObject var weatherVM: WeatherViewModel // APIレスポンスの値を保持するオブジェクト
+    @ObservedObject var locationManager: LocationManager // ロケーションマネージャー
+    @State var weatherLocation: MyLocation? // 地図上のマーカーのオブジェクト(MyLocation)を格納する変数
     
     var body: some View {
         ScrollView(.horizontal){// 水平方向にスクロール
@@ -20,11 +22,11 @@ struct DailyWeatherView: View {
                         VStack(spacing: 5) {
                             Text(forecastDay.toDisplayDate(forecastDay.date))//日付(年月日)
                                 .font(.callout)
-                          
+                            
                             AsyncImageView(urlStr: "https:\(forecastDay.day.condition.icon)")
                                 .padding()
                                 .scaledToFit()
-                                
+                            
                             
                             Text(forecastDay.day.condition.text)
                                 .font(.headline) // フォントを見出しのスタイルに//天気の説明(晴れ、曇り　等)
@@ -46,7 +48,7 @@ struct DailyWeatherView: View {
                             // 降水確率
                             HStack{Text("降水確率:")
                                 Text(forecastDay.day.dailyChanceOfRain, format: .number) //数字が入る
-                               
+                                
                                 Text("%")
                             }
                             .font(.subheadline)
@@ -58,7 +60,25 @@ struct DailyWeatherView: View {
                         .clipShape(.rect(cornerRadius: 10)) //角丸に切り取る
                     }
                 }
-            } else{
+                .onAppear {
+                    // マーカー(weatherLocation)があるときはマーカーの位置の天気を取得
+                    if let weatherLocation {
+                        let lat = weatherLocation.coordinate.latitude
+                        let lon = weatherLocation.coordinate.longitude
+                        weatherVM.request3DaysForecast(lat: lat, lon: lon)
+                        print("Weather Location:", weatherLocation.name)
+                        
+                        // ないときはユーザーの現在地の天気を取得
+                    } else if let location = locationManager.location {
+                        weatherVM.request3DaysForecast(
+                            lat: location.coordinate.latitude,
+                            lon: location.coordinate.longitude)
+                        print("Location:", location)
+                    }
+                }
+            }
+            
+            else{
                 // コピペした部分。データが無いとき(または起動直後)に表示。
                 HStack {
                     ForEach(0...2, id: \.self) { _ in // 3回繰り返して表示
@@ -108,7 +128,7 @@ struct DailyWeatherView: View {
     let lat: Double = 39.91167
     let lon: Double = 141.093459
     
-    DailyWeatherView(weatherVM: weatherVM)
+    DailyWeatherView(weatherVM: weatherVM, locationManager: LocationManager())
         .onAppear {
             weatherVM.request3DaysForecast(lat: lat, lon: lon)
         }
